@@ -385,6 +385,14 @@ async def retirer_utilisateur_ticket(interaction, utilisateur: discord.Member):
         )
         return
 
+    # Il ne faut pas retirer la personne qui a créé le ticket, donc on vérifie :
+    if bdd["tickets"][str(interaction.channel.id)]["ouvert_par"] == utilisateur.id:
+        await interaction.response.send_message(
+            content="❌ Tu ne peux pas retirer la personne qui a créé le ticket.",
+            ephemeral=True
+        )
+        return
+
     # Enfin, on vérifie que l'utilisateur est dans le ticket (avec ses perms).
     if not interaction.channel.permissions_for(utilisateur).read_messages:
         await interaction.response.send_message(
