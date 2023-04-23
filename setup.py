@@ -1,5 +1,3 @@
-import os
-
 # Setup
 print("👋 Salut ! Pour améliorer l'UX et pour pouvoir faire le setup plus facilement, je vais te poser quelques questions.")
 
