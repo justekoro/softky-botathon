@@ -175,18 +175,16 @@ async def creer_ticket(interaction):
         "ouvert_par": interaction.user.id,
         "ouvert_timestamp": int(time.time()),
         "transcript": [],
-        "utilisateurs": [
-            {
-                "id": interaction.user.id,
+        "utilisateurs": {
+            str(interaction.user.id): {
                 "nom": interaction.user.name,
                 "avatar": str(interaction.user.avatar)
             },
-            {
-                "id": bot.user.id,
+            str(bot.user.id): {
                 "nom": bot.user.name,
                 "avatar": str(bot.user.avatar)
             }
-        ]
+        }
     }
 
     print("BDD après création de ticket:")
@@ -325,10 +323,10 @@ async def ajouter_utilisateur_ticket(interaction, utilisateur: discord.Member):
         )
         return
 
-    # Enfin, on vérifie que l'utilisateur n'est pas déjà dans le ticket
-    if utilisateur.id in [utilisateur_["id"] for utilisateur_ in bdd["tickets"][str(interaction.channel.id)]["utilisateurs"]]:
+    # Enfin, on vérifie que l'utilisateur n'est pas déjà dans le ticket. On vérifie juste ses perms.
+    if interaction.channel.permissions_for(utilisateur).read_messages:
         await interaction.response.send_message(
-            content="❌ L'utilisateur est déjà dans le ticket.",
+            content="❌ Cet utilisateur est déjà dans le ticket.",
             ephemeral=True
         )
         return
@@ -336,14 +334,12 @@ async def ajouter_utilisateur_ticket(interaction, utilisateur: discord.Member):
     # Ajouter l'utilisateur au ticket
     await interaction.channel.set_permissions(utilisateur, read_messages=True)
 
-    # Ajouter l'utilisateur à la BDD
-    bdd["tickets"][str(interaction.channel.id)]["utilisateurs"].append(
-        {
-            "id": utilisateur.id,
+    # Ajouter l'utilisateur à la BDD si il n'y est pas déjà
+    if not str(utilisateur.id) in bdd["tickets"][str(interaction.channel.id)]["utilisateurs"]:
+        bdd["tickets"][str(interaction.channel.id)]["utilisateurs"][str(utilisateur.id)] = {
             "nom": utilisateur.name,
             "avatar": str(utilisateur.avatar)
         }
-    )
     bdd["tickets"][str(interaction.channel.id)]["transcript"].append(
         {
             "type": "ajout",
@@ -389,10 +385,10 @@ async def retirer_utilisateur_ticket(interaction, utilisateur: discord.Member):
         )
         return
 
-    # Enfin, on vérifie que l'utilisateur est dans le ticket
-    if utilisateur.id not in [utilisateur_["id"] for utilisateur_ in bdd["tickets"][str(interaction.channel.id)]["utilisateurs"]]:
+    # Enfin, on vérifie que l'utilisateur est dans le ticket (avec ses perms).
+    if not interaction.channel.permissions_for(utilisateur).read_messages:
         await interaction.response.send_message(
-            content="❌ L'utilisateur n'est pas dans le ticket.",
+            content="❌ Cet utilisateur n'est pas dans le ticket.",
             ephemeral=True
         )
         return
@@ -440,14 +436,11 @@ async def on_message(message):
         return  # Si le ticket n'existe pas, on ne fait rien
 
     # On ajoute l'utilisateur à la liste des utilisateurs du ticket (si il n'y est pas déjà)
-    if message.author.id not in [utilisateur["id"] for utilisateur in bdd["tickets"][str(message.channel.id)]["utilisateurs"]]:
-        bdd["tickets"][str(message.channel.id)]["utilisateurs"].append(
-            {
-                "id": message.author.id,
-                "nom": message.author.name,
-                "avatar": str(message.author.avatar)
-            }
-        )
+    if not str(message.author.id) in bdd["tickets"][str(message.channel.id)]["utilisateurs"]:
+        bdd["tickets"][str(message.channel.id)]["utilisateurs"][str(message.author.id)] = {
+            "nom": message.author.name,
+            "avatar": str(message.author.avatar)
+        }
 
     # On ajoute le message au transcript
     bdd["tickets"][str(message.channel.id)]["transcript"].append(
