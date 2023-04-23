@@ -20,3 +20,4 @@ Après avoir complété le `.env` à l'aide du fichier `exemple.env`, puis le fi
 
 ## Fonctionnalités additionnelles
 - [x] Commande `/removefromticket` pour supprimer un utilisateur d'un ticket
+- [x] Visualisation du ticket ! Le transcript est envoyé dans le salon logs en format JSON, joliment visualisable [ici](https://visutickets.softky.krbk.dev)
