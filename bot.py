@@ -44,6 +44,8 @@ async def close_ticket(interaction, raison=""):
     # Envoyer les infos du ticket dans le salon logs, en tant que fichier JSON.
     # Premièrement, on crée le fichier JSON qui sera envoyé.
 
+    ticket = bdd["tickets"][str(interaction.channel.id)]
+    ticket["ouvert_par"] = str(ticket["ouvert_par"])
     contenu = json.dumps(bdd["tickets"][str(interaction.channel.id)], indent=None)
     fichier = discord.File(
         fp=io.StringIO(contenu),
