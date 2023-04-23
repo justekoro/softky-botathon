@@ -173,7 +173,7 @@ async def creer_ticket(interaction):
     # On ajoute le salon à la base de données
     bdd["tickets"][str(salon.id)] = {
         "ouvert_par": interaction.user.id,
-        "ouvert_timestamp": int(time.time()),
+        "ouvert_timestamp": int(time.time() * 1000),
         "transcript": [],
         "utilisateurs": {
             str(interaction.user.id): {
@@ -345,7 +345,7 @@ async def ajouter_utilisateur_ticket(interaction, utilisateur: discord.Member):
             "type": "ajout",
             "utilisateur": utilisateur.id,
             "par": interaction.user.id,
-            "timestamp": int(time.time())
+            "timestamp": int(time.time() * 1000)
         }
     )
 
@@ -410,7 +410,7 @@ async def retirer_utilisateur_ticket(interaction, utilisateur: discord.Member):
             "type": "retrait",
             "utilisateur": utilisateur.id,
             "par": interaction.user.id,
-            "timestamp": int(time.time())
+            "timestamp": int(time.time() * 1000)
         }
     )
 
@@ -456,7 +456,7 @@ async def on_message(message):
             "type": "message",
             "utilisateur": message.author.id,
             "message": message.content,
-            "timestamp": int(time.time())
+            "timestamp": int(time.time() * 1000)
         }
     )
 
