@@ -61,11 +61,6 @@ async def close_ticket(interaction, raison=""):
 @bot.event
 async def on_ready():  # Bot prêt !
     print(f"🔥 On fire ! Je suis connecté en tant que {bot.user}")
-    # Print la configuration et la base de données
-    print("Configuration:")
-    print(config)
-    print("Base de données:")
-    print(bdd)
     # Préparation du tree
     await bot.tree.sync()
     # Change le statut du bot en "Regarde des tickets"
@@ -187,8 +182,6 @@ async def creer_ticket(interaction):
         }
     }
 
-    print("BDD après création de ticket:")
-    print(bdd)
     # Sauvegarde de la base de données+
     with open("db.json", "w") as base:
         base.write(json.dumps(bdd, indent=None))
@@ -287,11 +280,12 @@ async def fermer_ticket_avec_raison(interaction, raison: str):
     createur = await bot.fetch_user(createur)
 
     if createur is not None:
-        await createur.send(
-            content=f"Le ticket {interaction.channel.name} a été fermé par un admin avec la raison suivante : {raison}"
-        )
-    else:
-        print(list(bot.get_all_members())[0])
+        try:
+            await createur.send(
+                content=f"Le ticket {interaction.channel.name} a été fermé par un admin avec la raison suivante : {raison}"
+            )
+        except discord.Forbidden:
+            c_o = None
     # Sauvegarde de la base de données
     with open("db.json", "w") as base:
         base.write(json.dumps(bdd, indent=None))
