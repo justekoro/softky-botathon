@@ -24,6 +24,7 @@ with open("config.json", "r") as f:
     config = json.load(f)
 
 
+# Définition de la fonction log, qui génère et envoie un embed dans le salon dédié
 async def log(action: str, details: str, par: str = "un utilisateur inconnu"):
     salon = bot.get_channel(int(config["salon_logs"]))
     embed = discord.Embed(
@@ -36,6 +37,7 @@ async def log(action: str, details: str, par: str = "un utilisateur inconnu"):
     return True
 
 
+# Définition de la fonction qui permet de fermer un ticket
 async def close_ticket(interaction, raison=""):
     # On répète pas mal ce morceau de code, du coup ça part en fonction !
     await interaction.channel.delete()
@@ -65,6 +67,7 @@ async def on_ready():  # Bot prêt !
     print(f"🔥 On fire ! Je suis connecté en tant que {bot.user}")
     # Préparation du tree
     await bot.tree.sync()
+
     # Change le statut du bot en "Regarde des tickets"
     await bot.change_presence(
         activity=discord.Activity(type=discord.ActivityType.watching, name="des tickets"),
@@ -73,7 +76,7 @@ async def on_ready():  # Bot prêt !
 
 
 @bot.tree.command(name="ping", description="🤖 Connaître la latence du bot")
-async def ping(interaction):
+async def ping(interaction): # Non demandé, mais au cas où. (on sait jamais)
     await interaction.response.send_message(
         content=f"Pong! Latence: {round(bot.latency * 1000)}ms",
         ephemeral=True
@@ -81,7 +84,8 @@ async def ping(interaction):
 
 
 @bot.tree.command(name="embed_ticket", description="🎫 Envoyer l'embed de création de ticket")
-async def envoyer_embed_ticket(interaction):
+async def envoyer_embed_ticket(interaction): # La commande qui envoie l'embed avec le bouton pour créer un ticket.
+
     # Limiter la commande aux admins. Vérification de la permission "Administrateur"
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message(
@@ -90,7 +94,7 @@ async def envoyer_embed_ticket(interaction):
         )
         return
 
-    await interaction.response.defer(ephemeral=True)
+    await interaction.response.defer(ephemeral=True) # On défère la commande, le temps d'envoyer l'embed
     embed = discord.Embed(
         title="🗨️ **Besoin d'aide ?**",
         description="En créant un ticket, tu pourras poser tes questions à l'équipe de modération directement dans un channel dédié !",
@@ -117,6 +121,8 @@ async def envoyer_embed_ticket(interaction):
         embed=embed,
         view=vue
     )
+
+    # Et on répond à l'interaction !
     await interaction.followup.send(
         content="✅ L'embed a bien été envoyée !",
         ephemeral=True
@@ -125,12 +131,10 @@ async def envoyer_embed_ticket(interaction):
 
 @bot.tree.command(name="ticket", description="📩 Créer un ticket")
 async def creation_ticket(interaction):
-    await creer_ticket(interaction)  # Ça peut paraître bizarre, mais c'est pour éviter de dupliquer le code
+    await creer_ticket(interaction)  # Ça peut paraître bizarre de faire ça (ça l'est), mais c'est pour éviter de répéter du code
 
 
-
-async def creer_ticket(interaction):
-    # Vérification du nombre de tickets ouverts
+async def creer_ticket(interaction): # Création de ticket. Appelée avec la commande /ticket et le bouton pour en créer un !
     # D'abord on vérifie si l'utilisateur est dans la "bdd"
     if str(interaction.user.id) not in bdd["utilisateurs"]:
         bdd["utilisateurs"][str(interaction.user.id)] = {
@@ -148,10 +152,10 @@ async def creer_ticket(interaction):
     # Enfin, si tout est bon, on peut créer le ticket !
     await interaction.response.defer(ephemeral=True)
 
-    salon = await interaction.guild.create_text_channel(
+    salon = await interaction.guild.create_text_channel( # Création du salon
         name=f"ticket-{interaction.user.name}-{interaction.user.discriminator}-{uuid.uuid4().hex[:4]}",
     )
-    bdd["utilisateurs"][str(interaction.user.id)]["tickets"].append(salon.id)
+    bdd["utilisateurs"][str(interaction.user.id)]["tickets"].append(salon.id) # Ici, on ajoute le salon à la liste de ses tickets
 
     # Déplacement du salon dans la catégorie des tickets
     categorie_tickets = interaction.guild.get_channel(int(config["categorie_tickets"]))
@@ -167,7 +171,7 @@ async def creer_ticket(interaction):
     role_support = interaction.guild.get_role(int(config["role_support"]))
     await salon.set_permissions(role_support, read_messages=True)
 
-    # On ajoute le salon à la base de données
+    # On ajoute le salon à la base de données (pour le transcript)
     bdd["tickets"][str(salon.id)] = {
         "ouvert_par": interaction.user.id,
         "ouvert_timestamp": int(time.time() * 1000),
@@ -213,6 +217,7 @@ async def creer_ticket(interaction):
         view=vue
     )
 
+    # Et on répond à l'interaction !
     await interaction.followup.send(
         content=f"✅ Le ticket a bien été créé ! {salon.mention}",
         ephemeral=True
@@ -221,6 +226,7 @@ async def creer_ticket(interaction):
 
 @bot.tree.command(name="closeticket", description="🔒 Fermer un ticket")
 async def fermer_ticket(interaction):
+    # La commande ne peut être executée que dans un ticket:
     if not interaction.channel.category_id == int(config["categorie_tickets"]):
         await interaction.response.send_message(
             content="❌ Cette commande ne peut être exécutée que dans un ticket.",
@@ -228,7 +234,7 @@ async def fermer_ticket(interaction):
         )
         return
 
-    # Vérifier si l'utilisateur est le propriétaire du ticket
+    # On vérifie si l'utilisateur est le propriétaire du ticket
     if interaction.user.id != bdd["tickets"][str(interaction.channel.id)]["ouvert_par"]:
         await interaction.response.send_message(
             content="❌ Tu n'es pas le créateur de ce ticket.",
@@ -252,6 +258,7 @@ async def fermer_ticket(interaction):
 @bot.tree.command(name="closereason", description="🔒 Fermer un ticket avec une raison")
 @app_commands.describe(raison="La raison de la fermeture du ticket")
 async def fermer_ticket_avec_raison(interaction, raison: str):
+    # Cette commande ne peut être exécutée que dans un ticket :
     if not interaction.channel.category_id == int(config["categorie_tickets"]):
         await interaction.response.send_message(
             content="❌ Cette commande ne peut être exécutée que dans un ticket.",
@@ -259,7 +266,7 @@ async def fermer_ticket_avec_raison(interaction, raison: str):
         )
         return
 
-    # Cette commande est utilisable uniquement par les admins, donc on vérifie les perms en conséquence !
+    # Cette commande ne peut être utilisée que par les admins :
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message(
             content="❌ Tu n'as pas la permission d'utiliser cette commande !",
@@ -271,6 +278,7 @@ async def fermer_ticket_avec_raison(interaction, raison: str):
     await interaction.response.defer(ephemeral=True)
     await close_ticket(interaction, raison)
 
+    # Avant de supprimer, on récupère le créateur du ticket
     createur = bdd["tickets"][str(interaction.channel.id)]["ouvert_par"]
 
     # Suppression de la BDD
@@ -278,7 +286,6 @@ async def fermer_ticket_avec_raison(interaction, raison: str):
     bdd["utilisateurs"][str(createur)]["tickets"].remove(interaction.channel.id)
 
     # Envoi d'un message au créateur du ticket
-    c_o = createur
     createur = await bot.fetch_user(createur)
 
     if createur is not None:
@@ -287,7 +294,8 @@ async def fermer_ticket_avec_raison(interaction, raison: str):
                 content=f"Le ticket {interaction.channel.name} a été fermé par un admin avec la raison suivante : {raison}"
             )
         except discord.Forbidden:
-            c_o = None
+            pass # L'utilisateur a bloqué les DMs
+
     # Sauvegarde de la base de données
     with open("db.json", "w") as base:
         base.write(json.dumps(bdd, indent=None))
@@ -296,6 +304,7 @@ async def fermer_ticket_avec_raison(interaction, raison: str):
 @bot.tree.command(name="addtoticket", description="📣 Ajouter un utilisateur au ticket")
 @app_commands.describe(utilisateur="L'utilisateur à ajouter au ticket")
 async def ajouter_utilisateur_ticket(interaction, utilisateur: discord.Member):
+    # Cette commande ne peut être exécutée que dans un ticket :
     if not interaction.channel.category_id == int(config["categorie_tickets"]):
         await interaction.response.send_message(
             content="❌ Cette commande ne peut être exécutée que dans un ticket.",
@@ -303,7 +312,7 @@ async def ajouter_utilisateur_ticket(interaction, utilisateur: discord.Member):
         )
         return
 
-    # On vérifie si la personne qui a fait la commande est un admin
+    # On vérifie si la personne qui a fait la commande est bien un admin
     if not interaction.user.guild_permissions.administrator:
         await interaction.response.send_message(
             content="❌ Tu n'as pas la permission d'utiliser cette commande !",
@@ -314,7 +323,7 @@ async def ajouter_utilisateur_ticket(interaction, utilisateur: discord.Member):
     # On vérifie que l'utilisateur à ajouter n'est pas un bot (au cas où).
     if utilisateur.bot:
         await interaction.response.send_message(
-            content="❌ Tu ne peux pas ajouter un bot au ticket.",
+            content="❌ Tu ne peux pas ajouter un bot au ticket.",  # Top 10 anime betrayals
             ephemeral=True
         )
         return
@@ -336,6 +345,8 @@ async def ajouter_utilisateur_ticket(interaction, utilisateur: discord.Member):
             "nom": utilisateur.name,
             "avatar": str(utilisateur.avatar)
         }
+
+    # On ajoute l'action au transcript
     bdd["tickets"][str(interaction.channel.id)]["transcript"].append(
         {
             "type": "ajout",
@@ -349,6 +360,7 @@ async def ajouter_utilisateur_ticket(interaction, utilisateur: discord.Member):
     with open("db.json", "w") as base:
         base.write(json.dumps(bdd, indent=None))
 
+    # Et on répond (enfin) à l'interaction
     await interaction.response.send_message(
         content=f"✅ {utilisateur.mention} a bien été ajouté au ticket.",
         ephemeral=True
@@ -358,6 +370,7 @@ async def ajouter_utilisateur_ticket(interaction, utilisateur: discord.Member):
 @bot.tree.command(name="removefromticket", description="👋 Retirer un utilisateur du ticket")
 @app_commands.describe(utilisateur="L'utilisateur à retirer du ticket")
 async def retirer_utilisateur_ticket(interaction, utilisateur: discord.Member):
+    # Bon, on vérifie que la commande est bien exécutée dans un ticket :
     if not interaction.channel.category_id == int(config["categorie_tickets"]):
         await interaction.response.send_message(
             content="❌ Cette commande ne peut être exécutée que dans un ticket.",
@@ -376,7 +389,7 @@ async def retirer_utilisateur_ticket(interaction, utilisateur: discord.Member):
     # On vérifie que l'utilisateur à retirer n'est pas un bot (au cas où).
     if utilisateur.bot:
         await interaction.response.send_message(
-            content="❌ Tu ne peux pas retirer un bot du ticket.",
+            content="❌ Tu ne peux pas retirer un bot du ticket.",  # Ils ont rien demandé pourtant 🥹
             ephemeral=True
         )
         return
@@ -463,18 +476,24 @@ async def on_message(message):
 
 @bot.event
 async def on_interaction(inter: discord.Interaction):
-    if inter.type == discord.InteractionType.component:
-        identifiant = inter.data.get("custom_id")
-        if inter.data.get("component_type") == discord.ComponentType.button.value:
+    # J'ai pris trèès longtemps à me rendre compte que c'était possible de faire comme ça 🥹
+    if inter.type == discord.InteractionType.component:  # On vérifie que c'est bien un component
+        identifiant = inter.data.get("custom_id")  # Si c'est le cas, on récupère l'identifiant (il en a forcément un)
+        if inter.data.get("component_type") == discord.ComponentType.button.value:  # Puis on vérifie que c'est un bouton
+
             if identifiant == "creer_ticket":
-                await creer_ticket(inter)
-            elif identifiant == "fermer_ticket":
+                await creer_ticket(inter)  # On gère le bouton de création de ticket
+
+            elif identifiant == "fermer_ticket":  # Et le bouton de fermeture de ticket !
+
                 # Normalement, ce bouton ne peut être que dans un ticket.
                 # Mais on vérifie quand même, au cas où !
                 if inter.channel.category_id == int(config["categorie_tickets"]):
+                    # On defer la réponse
                     await inter.response.defer(ephemeral=True)
-                    await close_ticket(inter)
-                    createur = bdd["tickets"][str(inter.channel.id)]["ouvert_par"]
+
+                    await close_ticket(inter)  # Et on ferme !
+                    createur = bdd["tickets"][str(inter.channel.id)]["ouvert_par"]  # On récupère le créateur du ticket pour pouvoir lui enlever (ça se fait quand même...)
 
                     # Suppression de la BDD
                     del bdd["tickets"][str(inter.channel.id)]
@@ -485,4 +504,5 @@ async def on_interaction(inter: discord.Interaction):
                         base.write(json.dumps(bdd, indent=None))
 
 
+# Lancement du bot
 bot.run(os.getenv("TOKEN"))
