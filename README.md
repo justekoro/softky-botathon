@@ -14,5 +14,9 @@ $ pip install -r requirements.txt
 ```
 
 ## Préparation
-Après avoir complété le `.env` à l'aide du fichier `exemple.env` ou du questionnaire `setup.py`, vous pouvez lancer le bot à l'aide de la commande `python bot.py`
+<span style="color: red;">ATTENTION:</span> le bot a besoin de des intents **Members**, **Messages** et **Message Content** pour pouvoir fonctionner correctement.
 
+Après avoir complété le `.env` à l'aide du fichier `exemple.env`, puis le fichier `config.json` ou le tout à l'aide du questionnaire `setup.py`, vous pouvez lancer le bot à l'aide de la commande `python bot.py`
+
+## Fonctionnalités additionnelles
+- [x] Commande `/removefromticket` pour supprimer un utilisateur d'un ticket
