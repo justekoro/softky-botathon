@@ -337,8 +337,8 @@ async def ajouter_utilisateur_ticket(interaction, utilisateur: discord.Member):
     bdd["tickets"][str(interaction.channel.id)]["transcript"].append(
         {
             "type": "ajout",
-            "utilisateur": utilisateur.id,
-            "par": interaction.user.id,
+            "utilisateur": str(utilisateur.id),
+            "par": str(interaction.user.id),
             "timestamp": int(time.time() * 1000)
         }
     )
@@ -402,8 +402,8 @@ async def retirer_utilisateur_ticket(interaction, utilisateur: discord.Member):
     bdd["tickets"][str(interaction.channel.id)]["transcript"].append(
         {
             "type": "retrait",
-            "utilisateur": utilisateur.id,
-            "par": interaction.user.id,
+            "utilisateur": str(utilisateur.id),
+            "par": str(interaction.user.id),
             "timestamp": int(time.time() * 1000)
         }
     )
@@ -448,7 +448,7 @@ async def on_message(message):
     bdd["tickets"][str(message.channel.id)]["transcript"].append(
         {
             "type": "message",
-            "utilisateur": message.author.id,
+            "utilisateur": str(message.author.id),
             "message": message.content,
             "timestamp": int(time.time() * 1000)
         }
